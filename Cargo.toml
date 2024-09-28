@@ -1,0 +1,10 @@
+[package]
+name = "alien-fans"
+version = "0.1.0"
+edition = "2021"
+authors = ["sam0x17"]
+keywords = ["alienware", "fans", "control", "linux"]
+description = "A simple service to automatically control Alienware CPU and case fans on Linux"
+license = "MIT"
+
+[dependencies]
