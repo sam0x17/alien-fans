@@ -93,6 +93,9 @@ fn find_hwmon_device(device_name: &str) -> Option<PathBuf> {
                 println!("Found hwmon device: {}", content.trim());
                 if content.trim().contains(device_name) {
                     return Some(entry.path());
+                } else {
+                    println!("device name: {}", device_name);
+                    println!("    content: {}", content.trim());
                 }
             }
         }
