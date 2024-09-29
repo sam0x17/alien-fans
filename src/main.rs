@@ -123,7 +123,7 @@ fn main() {
     let curve = DEFAULT_CURVE;
 
     // Find the dell_smm hwmon interface
-    let Some(dell_smm) = find_hwmon_device("del_smm") else {
+    let Some(dell_smm) = find_hwmon_device("dell_smm") else {
         eprintln!("dell_smm hwmon interface not found.");
         exit(1);
     };
