@@ -157,7 +157,7 @@ fn main() {
 
         // Adjust PWM based on temperature
         //let pwm_value = curve.0[(cpu_temp / 10) as usize];
-        pwm_controller.set_pwm(1, 128).unwrap();
+        pwm_controller.set_pwm(1, 200).unwrap();
 
         std::thread::sleep(POLLING_INTERVAL);
     }
