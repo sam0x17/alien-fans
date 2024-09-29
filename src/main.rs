@@ -6,7 +6,7 @@ use std::process::exit;
 use std::str::FromStr;
 use std::time::Duration;
 
-const POLLING_INTERVAL: Duration = Duration::from_millis(500);
+const POLLING_INTERVAL: Duration = Duration::from_millis(1000);
 
 const DEFAULT_CURVE: Curve = Curve([
     0,   // <= 9C
