@@ -90,6 +90,7 @@ fn find_hwmon_device(device_name: &str) -> Option<PathBuf> {
             let hwmon_name_file = entry.path().join("name");
 
             if let Ok(content) = fs::read_to_string(hwmon_name_file) {
+                println!("Found hwmon device: {}", content.trim());
                 if content.trim().contains(device_name) {
                     return Some(entry.path());
                 }
