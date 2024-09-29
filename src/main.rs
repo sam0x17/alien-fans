@@ -4,6 +4,9 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
+use std::time::Duration;
+
+const POLLING_INTERVAL: Duration = Duration::from_millis(500);
 
 const DEFAULT_CURVE: Curve = Curve([
     0,   // <= 9C
@@ -79,8 +82,7 @@ impl FromStr for Curve {
     }
 }
 
-// Function to find the 'dell_smm' hwmon interface
-fn find_dell_smm_hwmon() -> Option<PathBuf> {
+fn find_hwmon_device(device_name: &str) -> Option<PathBuf> {
     let hwmon_path = Path::new("/sys/class/hwmon");
     if hwmon_path.is_dir() {
         for entry in fs::read_dir(hwmon_path).unwrap() {
@@ -88,13 +90,13 @@ fn find_dell_smm_hwmon() -> Option<PathBuf> {
             let hwmon_name_file = entry.path().join("name");
 
             if let Ok(content) = fs::read_to_string(hwmon_name_file) {
-                if content.trim() == "dell_smm" {
+                if content.trim() == device_name {
                     return Some(entry.path());
                 }
             }
         }
     }
-    if DEBUG_MODE {
+    if cfg!(debug_assertions) {
         return Some(PathBuf::from("/sys/class/hwmon/hwmon-debug"));
     }
     None
@@ -112,27 +114,36 @@ fn set_pwm(hwmon_path: &Path, pwm_number: u8, value: u8) -> io::Result<()> {
     Ok(())
 }
 
+fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
+    let temp_path = hwmon_path.join("temp1_input");
+    let temp_str = fs::read_to_string(temp_path)?;
+    let mut temp = temp_str.trim().parse::<u64>().unwrap();
+    temp = temp / 1000;
+    Ok(temp)
+}
+
 fn main() {
     let curve = DEFAULT_CURVE;
 
     // Find the dell_smm hwmon interface
-    let Some(hwmon_path) = find_dell_smm_hwmon() else {
+    let Some(dell_smm) = find_hwmon_device("del_smm") else {
         eprintln!("dell_smm hwmon interface not found.");
         exit(1);
     };
-    println!(
-        "Found dell_smm hwmon interface at: {}",
-        hwmon_path.display()
-    );
+    println!("Found dell_smm hwmon interface at: {}", dell_smm.display());
+
+    let Some(coretemp) = find_hwmon_device("coretemp") else {
+        eprintln!("coretemp hwmon interface not found.");
+        exit(1);
+    };
+    println!("Found coretemp hwmon interface at: {}", coretemp.display());
 
     loop {
-        // CPU fan
-    }
-    // Set PWM values for pwm1, pwm2, and pwm3
-    for pwm_number in 1..=3 {
-        match set_pwm(&hwmon_path, pwm_number, 100) {
-            Ok(_) => println!("Successfully set pwm{}", pwm_number),
-            Err(e) => eprintln!("Failed to set pwm{}: {}", pwm_number, e),
-        }
+        let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
+        println!("CPU temperature: {}C", cpu_temp);
+        let cpu_pwm_value = curve.0[cpu_temp as usize];
+        println!("Setting CPU fan speed to {}", cpu_pwm_value * 100 / 254);
+
+        std::thread::sleep(POLLING_INTERVAL);
     }
 }
