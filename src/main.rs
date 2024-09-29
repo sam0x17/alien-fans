@@ -138,8 +138,12 @@ fn main() {
     loop {
         let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
         println!("CPU temperature: {}C", cpu_temp);
-        let cpu_pwm_value = curve.0[cpu_temp as usize];
-        println!("Setting CPU fan speed to {}", cpu_pwm_value * 100 / 254);
+        //let cpu_pwm_value = curve.0[cpu_temp as usize];
+        //println!("Setting CPU fan speed to {}", cpu_pwm_value * 100 / 254);
+
+        set_pwm(&dell_smm, 1, 50).unwrap();
+        set_pwm(&dell_smm, 2, 50).unwrap();
+        set_pwm(&dell_smm, 3, 50).unwrap();
 
         std::thread::sleep(POLLING_INTERVAL);
     }
