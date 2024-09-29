@@ -56,7 +56,7 @@ fn main() {
 
         // Set PWM values for pwm1, pwm2, and pwm3
         for pwm_number in 1..=3 {
-            match set_pwm(&hwmon_path, pwm_number, 255) {
+            match set_pwm(&hwmon_path, pwm_number, 100) {
                 Ok(_) => println!("Successfully set pwm{}", pwm_number),
                 Err(e) => eprintln!("Failed to set pwm{}: {}", pwm_number, e),
             }
