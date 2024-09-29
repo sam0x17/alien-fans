@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -90,16 +90,36 @@ fn find_hwmon_device(device_name: &str) -> Option<PathBuf> {
     None
 }
 
-// Helper function to write to pwmX
-fn set_pwm(hwmon_path: &Path, pwm_number: u8, value: u8) -> io::Result<()> {
-    if DEBUG_MODE {
-        println!("Setting pwm{} to {}", pwm_number, value);
-        return Ok(());
+// Struct to manage PWM file descriptors
+struct PwmController {
+    pwm_files: Vec<io::Result<File>>,
+}
+
+impl PwmController {
+    fn new(hwmon_path: &Path) -> io::Result<Self> {
+        let mut pwm_files = Vec::new();
+        for pwm_number in 1..=3 {
+            let pwm_path = hwmon_path.join(format!("pwm{}", pwm_number));
+            let file = OpenOptions::new().write(true).open(pwm_path);
+            pwm_files.push(file);
+        }
+        Ok(PwmController { pwm_files })
     }
-    let pwm_path = hwmon_path.join(format!("pwm{}", pwm_number));
-    let mut file = File::create(pwm_path)?;
-    file.write_all(value.to_string().as_bytes())?;
-    Ok(())
+
+    fn set_pwm(&mut self, pwm_number: usize, value: u8) -> io::Result<()> {
+        if DEBUG_MODE {
+            println!("Setting pwm{} to {}", pwm_number, value);
+            return Ok(());
+        }
+
+        if let Some(file) = self.pwm_files.get_mut(pwm_number - 1) {
+            if let Ok(file) = file {
+                file.write_all(value.to_string().as_bytes())?;
+                file.flush()?; // Flush to ensure it's written to the hardware
+            }
+        }
+        Ok(())
+    }
 }
 
 fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
@@ -128,15 +148,17 @@ fn main() {
     };
     println!("Found coretemp hwmon interface at: {}", coretemp.display());
 
+    // Initialize PwmController
+    let mut pwm_controller = PwmController::new(&dell_smm).unwrap();
+
     loop {
         let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
         println!("CPU temperature: {}C", cpu_temp);
-        //let cpu_pwm_value = curve.0[cpu_temp as usize];
-        //println!("Setting CPU fan speed to {}", cpu_pwm_value * 100 / 254);
 
-        set_pwm(&dell_smm, 1, 50).unwrap();
-        //set_pwm(&dell_smm, 2, 50).unwrap();
-        //set_pwm(&dell_smm, 3, 50).unwrap();
+        // Adjust PWM based on temperature
+        let pwm_value = curve.0[(cpu_temp / 10) as usize];
+        pwm_controller.set_pwm(1, pwm_value).unwrap();
+        println!("PWM value: {}", pwm_value);
 
         std::thread::sleep(POLLING_INTERVAL);
     }
