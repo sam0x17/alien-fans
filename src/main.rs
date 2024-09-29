@@ -97,9 +97,6 @@ fn find_hwmon_device(device_name: &str) -> Option<PathBuf> {
             }
         }
     }
-    if cfg!(debug_assertions) {
-        return Some(PathBuf::from("/sys/class/hwmon/hwmon-debug"));
-    }
     None
 }
 
