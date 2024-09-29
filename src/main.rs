@@ -22,16 +22,7 @@ const DEFAULT_CURVE: Curve = Curve([
 ])
 .normalize();
 
-const DEBUG_MODE: bool = {
-    #[cfg(not(target_os = "linux"))]
-    {
-        true
-    }
-    #[cfg(target_os = "linux")]
-    {
-        std::option_env!("DEBUG_MODE").is_some()
-    }
-};
+const DEBUG_MODE: bool = cfg!(not(target_os = "linux")) || std::option_env!("DEBUG_MODE").is_some();
 
 struct CurveParsingError;
 
@@ -114,9 +105,11 @@ fn set_pwm(hwmon_path: &Path, pwm_number: u8, value: u8) -> io::Result<()> {
 fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
     let temp_path = hwmon_path.join("temp1_input");
     let temp_str = fs::read_to_string(temp_path)?;
-    let mut temp = temp_str.trim().parse::<u64>().unwrap();
-    temp = temp / 1000;
-    Ok(temp)
+    let temp = temp_str
+        .trim()
+        .parse::<u64>()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    Ok(temp / 1000)
 }
 
 fn main() {
