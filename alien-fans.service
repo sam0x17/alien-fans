@@ -1,0 +1,14 @@
+[Unit]
+Description=Service for managing fans/temps on Alienware desktops
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/usr/bin/alien-fans
+
+[Install]
+WantedBy=multi-user.target
