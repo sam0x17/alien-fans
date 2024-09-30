@@ -167,7 +167,7 @@ fn main() {
     };
     println!("Found dell_smm hwmon interface at: {}", dell_smm.display());
 
-    let Some(coretemp) = find_hwmon_device("acpitz") else {
+    let Some(coretemp) = find_hwmon_device("coretemp") else {
         eprintln!("coretemp hwmon interface not found.");
         exit(1);
     };
