@@ -190,7 +190,7 @@ fn main() {
         let desired_cpu_pwm = curve.apply(cpu_temp);
         let current_cpu_pwm = read_pwm(&dell_smm, 1).unwrap();
         println!("current_cpu_pwm: {}", current_cpu_pwm);
-        if desired_cpu_pwm != current_cpu_pwm {
+        if current_cpu_pwm.abs_diff(desired_cpu_pwm) > 3 {
             println!("Setting CPU PWM to {}", desired_cpu_pwm);
             pwm_controller.set_pwm(1, desired_cpu_pwm).unwrap();
             pwm_controller.set_pwm(2, desired_cpu_pwm).unwrap();
