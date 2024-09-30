@@ -6,17 +6,17 @@ use std::process::exit;
 use std::str::FromStr;
 use std::time::Duration;
 
-const POLLING_INTERVAL: Duration = Duration::from_millis(5000);
+const POLLING_INTERVAL: Duration = Duration::from_millis(1000);
 
 const DEFAULT_CURVE: Curve = Curve([
-    0,   // <= 9C
-    0,   // 10C-19C
-    5,   // 20-29C
-    10,  // 30-39C
-    25,  // 40-49C
+    50,  // <= 9C
+    50,  // 10C-19C
+    50,  // 20-29C
+    50,  // 30-39C
+    50,  // 40-49C
     50,  // 50-59C
-    60,  // 60-69C
-    75,  // 70-79C
+    50,  // 60-69C
+    100, // 70-79C
     100, // 80-89C
     100, // >= 91C
 ])
@@ -50,6 +50,30 @@ impl Curve {
             }
         }
         Curve(curve)
+    }
+
+    const fn apply(&self, temp: u64) -> u8 {
+        if temp < 10 {
+            return self.0[0];
+        } else if temp < 20 {
+            return self.0[1];
+        } else if temp < 30 {
+            return self.0[2];
+        } else if temp < 40 {
+            return self.0[3];
+        } else if temp < 50 {
+            return self.0[4];
+        } else if temp < 60 {
+            return self.0[5];
+        } else if temp < 70 {
+            return self.0[6];
+        } else if temp < 80 {
+            return self.0[7];
+        } else if temp < 90 {
+            return self.0[8];
+        } else {
+            return self.0[9];
+        }
     }
 }
 
@@ -151,13 +175,22 @@ fn main() {
     // Initialize PwmController
     let mut pwm_controller = PwmController::new(&dell_smm).unwrap();
 
+    let mut current_cpu_pwm = 0;
+
     loop {
         let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
         println!("CPU temperature: {}C", cpu_temp);
 
         // Adjust PWM based on temperature
-        //let pwm_value = curve.0[(cpu_temp / 10) as usize];
-        pwm_controller.set_pwm(1, 200).unwrap();
+        //let pwm_value = self.0[(cpu_temp / 10) as usize];
+        let desired_cpu_pwm = curve.apply(cpu_temp);
+        if desired_cpu_pwm != current_cpu_pwm {
+            println!("Setting CPU PWM to {}", desired_cpu_pwm);
+            pwm_controller.set_pwm(1, desired_cpu_pwm).unwrap();
+            pwm_controller.set_pwm(2, desired_cpu_pwm).unwrap();
+            pwm_controller.set_pwm(3, desired_cpu_pwm).unwrap();
+            current_cpu_pwm = desired_cpu_pwm;
+        }
 
         std::thread::sleep(POLLING_INTERVAL);
     }
