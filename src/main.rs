@@ -188,7 +188,7 @@ fn main() {
         // Adjust PWM based on temperature
         //let pwm_value = self.0[(cpu_temp / 10) as usize];
         let desired_cpu_pwm = curve.apply(cpu_temp);
-        let current_cpu_pwm = read_pwm(&coretemp, 1).unwrap();
+        let current_cpu_pwm = read_pwm(&dell_smm, 1).unwrap();
         println!("current_cpu_pwm: {}", current_cpu_pwm);
         if desired_cpu_pwm != current_cpu_pwm {
             println!("Setting CPU PWM to {}", desired_cpu_pwm);
