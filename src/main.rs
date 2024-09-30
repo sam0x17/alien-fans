@@ -145,10 +145,18 @@ impl PwmController {
                 let reader = io::BufReader::new(file);
                 let mut lines = reader.lines();
                 if let Some(Ok(line)) = lines.next() {
-                    let value = line.trim().parse::<u8>().unwrap();
+                    println!("Read line: {}", line); // Debugging statement
+                    let value = line.trim().parse::<u8>().unwrap_or(0);
+                    println!("Parsed value: {}", value); // Debugging statement
                     return Ok(value);
+                } else {
+                    println!("Failed to read line"); // Debugging statement
                 }
+            } else {
+                println!("Failed to open file"); // Debugging statement
             }
+        } else {
+            println!("File not found in pwm_files"); // Debugging statement
         }
         Ok(0)
     }
