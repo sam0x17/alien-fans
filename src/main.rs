@@ -43,7 +43,7 @@ impl Curve {
         let mut curve = self.0;
         let mut i = 0;
         loop {
-            curve[i] = curve[i].saturating_mul(254).saturating_add(50) / 100;
+            curve[i] = (curve[i] as u64 * 254 / 100) as u8;
             i += 1;
             if i == curve.len() {
                 break;
