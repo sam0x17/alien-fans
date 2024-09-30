@@ -138,28 +138,6 @@ impl PwmController {
         }
         Ok(())
     }
-
-    fn get_pwm(&self, pwm_number: usize) -> io::Result<u8> {
-        if let Some(file) = self.pwm_files.get(pwm_number - 1) {
-            if let Some(file) = file.as_ref().ok() {
-                let reader = io::BufReader::new(file);
-                let mut lines = reader.lines();
-                if let Some(Ok(line)) = lines.next() {
-                    println!("Read line: {}", line); // Debugging statement
-                    let value = line.trim().parse::<u8>().unwrap_or(0);
-                    println!("Parsed value: {}", value); // Debugging statement
-                    return Ok(value);
-                } else {
-                    println!("Failed to read line"); // Debugging statement
-                }
-            } else {
-                println!("Failed to open file"); // Debugging statement
-            }
-        } else {
-            println!("File not found in pwm_files"); // Debugging statement
-        }
-        Ok(0)
-    }
 }
 
 fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
@@ -170,6 +148,16 @@ fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
         .parse::<u64>()
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Ok(temp / 1000)
+}
+
+fn read_pwm(hwmon_path: &Path, pwm_number: usize) -> io::Result<u8> {
+    let pwm_path = hwmon_path.join(format!("pwm{}", pwm_number));
+    let pwm_str = fs::read_to_string(pwm_path)?;
+    let pwm = pwm_str
+        .trim()
+        .parse::<u8>()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    Ok(pwm)
 }
 
 fn main() {
@@ -200,7 +188,7 @@ fn main() {
         // Adjust PWM based on temperature
         //let pwm_value = self.0[(cpu_temp / 10) as usize];
         let desired_cpu_pwm = curve.apply(cpu_temp);
-        let current_cpu_pwm = pwm_controller.get_pwm(1).unwrap();
+        let current_cpu_pwm = read_pwm(&coretemp, 1).unwrap();
         println!("current_cpu_pwm: {}", current_cpu_pwm);
         if desired_cpu_pwm != current_cpu_pwm {
             println!("Setting CPU PWM to {}", desired_cpu_pwm);
