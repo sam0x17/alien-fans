@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
@@ -145,6 +145,22 @@ impl PwmController {
         }
         Ok(())
     }
+
+    fn get_pwm(&self, pwm_number: usize) -> io::Result<u8> {
+        if DEBUG_MODE {
+            return Ok(0);
+        }
+
+        if let Some(file) = self.pwm_files.get(pwm_number - 1) {
+            if let Some(mut file) = file.as_ref().ok() {
+                let mut buf = String::new();
+                file.read_to_string(&mut buf)?;
+                let value = buf.trim().parse::<u8>().unwrap();
+                return Ok(value);
+            }
+        }
+        Ok(0)
+    }
 }
 
 fn read_coretemp_temp(hwmon_path: &Path) -> io::Result<u64> {
@@ -176,7 +192,7 @@ fn main() {
     // Initialize PwmController
     let mut pwm_controller = PwmController::new(&dell_smm).unwrap();
 
-    let mut current_cpu_pwm = 0;
+    //let mut current_cpu_pwm = 0;
 
     loop {
         let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
@@ -185,12 +201,14 @@ fn main() {
         // Adjust PWM based on temperature
         //let pwm_value = self.0[(cpu_temp / 10) as usize];
         let desired_cpu_pwm = curve.apply(cpu_temp);
+        let current_cpu_pwm = pwm_controller.get_pwm(1).unwrap();
+        println!("current_cpu_pwm: {}", current_cpu_pwm);
         if desired_cpu_pwm != current_cpu_pwm {
             println!("Setting CPU PWM to {}", desired_cpu_pwm);
             pwm_controller.set_pwm(1, desired_cpu_pwm).unwrap();
             pwm_controller.set_pwm(2, desired_cpu_pwm).unwrap();
             pwm_controller.set_pwm(3, desired_cpu_pwm).unwrap();
-            current_cpu_pwm = desired_cpu_pwm;
+            //current_cpu_pwm = desired_cpu_pwm;
         }
 
         std::thread::sleep(POLLING_INTERVAL);
