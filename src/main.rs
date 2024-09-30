@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, BufRead, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::str::FromStr;
@@ -21,8 +21,6 @@ const DEFAULT_CURVE: Curve = Curve([
     100, // >= 91C
 ])
 .normalize();
-
-const DEBUG_MODE: bool = cfg!(not(target_os = "linux")) || std::option_env!("DEBUG_MODE").is_some();
 
 struct CurveParsingError;
 
@@ -132,11 +130,6 @@ impl PwmController {
     }
 
     fn set_pwm(&mut self, pwm_number: usize, value: u8) -> io::Result<()> {
-        if DEBUG_MODE {
-            println!("Setting pwm{} to {}", pwm_number, value);
-            return Ok(());
-        }
-
         if let Some(file) = self.pwm_files.get_mut(pwm_number - 1) {
             if let Ok(file) = file {
                 file.write_all(value.to_string().as_bytes())?;
@@ -147,16 +140,14 @@ impl PwmController {
     }
 
     fn get_pwm(&self, pwm_number: usize) -> io::Result<u8> {
-        if DEBUG_MODE {
-            return Ok(0);
-        }
-
         if let Some(file) = self.pwm_files.get(pwm_number - 1) {
-            if let Some(mut file) = file.as_ref().ok() {
-                let mut buf = String::new();
-                file.read_to_string(&mut buf)?;
-                let value = buf.trim().parse::<u8>().unwrap();
-                return Ok(value);
+            if let Some(file) = file.as_ref().ok() {
+                let reader = io::BufReader::new(file);
+                let mut lines = reader.lines();
+                if let Some(Ok(line)) = lines.next() {
+                    let value = line.trim().parse::<u8>().unwrap();
+                    return Ok(value);
+                }
             }
         }
         Ok(0)
