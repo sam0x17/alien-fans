@@ -179,23 +179,19 @@ fn main() {
     // Initialize PwmController
     let mut pwm_controller = PwmController::new(&dell_smm).unwrap();
 
-    //let mut current_cpu_pwm = 0;
+    let mut current_cpu_pwm = 0u8;
 
     loop {
         let cpu_temp = read_coretemp_temp(&coretemp).unwrap();
         println!("CPU temperature: {}C", cpu_temp);
-
-        // Adjust PWM based on temperature
-        //let pwm_value = self.0[(cpu_temp / 10) as usize];
         let desired_cpu_pwm = curve.apply(cpu_temp);
-        let current_cpu_pwm = read_pwm(&dell_smm, 1).unwrap();
-        println!("current_cpu_pwm: {}", current_cpu_pwm);
+        // let current_cpu_pwm = read_pwm(&dell_smm, 1).unwrap();
         if current_cpu_pwm.abs_diff(desired_cpu_pwm) > 3 {
             println!("Setting CPU PWM to {}", desired_cpu_pwm);
             pwm_controller.set_pwm(1, desired_cpu_pwm).unwrap();
             pwm_controller.set_pwm(2, desired_cpu_pwm).unwrap();
             pwm_controller.set_pwm(3, desired_cpu_pwm).unwrap();
-            //current_cpu_pwm = desired_cpu_pwm;
+            current_cpu_pwm = desired_cpu_pwm;
         }
 
         std::thread::sleep(POLLING_INTERVAL);
